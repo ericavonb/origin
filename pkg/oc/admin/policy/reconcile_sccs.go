@@ -82,7 +82,7 @@ func NewDefaultReconcileSCCOptions() *ReconcileSCCOptions {
 }
 
 // NewCmdReconcileSCC implements the OpenShift cli reconcile-sccs command.
-func NewCmdReconcileSCC(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdReconcileSCC(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	o := NewDefaultReconcileSCCOptions()
 	o.Out = out
 

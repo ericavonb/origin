@@ -57,10 +57,11 @@ type RoleModificationOptions struct {
 	Output string
 
 	PrintObj func(obj runtime.Object) error
+	PrintWarning func(warn string) error
 }
 
 // NewCmdAddRoleToGroup implements the OpenShift cli add-role-to-group command
-func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
 
 	cmd := &cobra.Command{
@@ -92,7 +93,7 @@ func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Wr
 }
 
 // NewCmdAddRoleToUser implements the OpenShift cli add-role-to-user command
-func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
 	saNames := []string{}
 
@@ -126,7 +127,7 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Wri
 }
 
 // NewCmdRemoveRoleFromGroup implements the OpenShift cli remove-role-from-group command
-func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
 
 	cmd := &cobra.Command{
@@ -157,7 +158,7 @@ func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out 
 }
 
 // NewCmdRemoveRoleFromUser implements the OpenShift cli remove-role-from-user command
-func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
 	saNames := []string{}
 
@@ -190,7 +191,7 @@ func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out i
 }
 
 // NewCmdAddClusterRoleToGroup implements the OpenShift cli add-cluster-role-to-group command
-func NewCmdAddClusterRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdAddClusterRoleToGroup(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
 
 	cmd := &cobra.Command{
@@ -219,7 +220,7 @@ func NewCmdAddClusterRoleToGroup(name, fullName string, f *clientcmd.Factory, ou
 }
 
 // NewCmdAddClusterRoleToUser implements the OpenShift cli add-cluster-role-to-user command
-func NewCmdAddClusterRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdAddClusterRoleToUser(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	saNames := []string{}
 	options := &RoleModificationOptions{}
 
@@ -251,7 +252,7 @@ func NewCmdAddClusterRoleToUser(name, fullName string, f *clientcmd.Factory, out
 }
 
 // NewCmdRemoveClusterRoleFromGroup implements the OpenShift cli remove-cluster-role-from-group command
-func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	options := &RoleModificationOptions{}
 
 	cmd := &cobra.Command{
@@ -281,7 +282,7 @@ func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f *clientcmd.Factor
 }
 
 // NewCmdRemoveClusterRoleFromUser implements the OpenShift cli remove-cluster-role-from-user command
-func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	saNames := []string{}
 	options := &RoleModificationOptions{}
 

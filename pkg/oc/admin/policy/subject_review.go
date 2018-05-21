@@ -59,7 +59,7 @@ type sccSubjectReviewOptions struct {
 	serviceAccount             string
 }
 
-func NewCmdSccSubjectReview(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdSccSubjectReview(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	o := &sccSubjectReviewOptions{}
 	cmd := &cobra.Command{
 		Use:     name,

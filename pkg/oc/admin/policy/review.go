@@ -65,7 +65,7 @@ type sccReviewOptions struct {
 	shortServiceAccountNames []string // it contains only short sa name for example 'bob'
 }
 
-func NewCmdSccReview(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdSccReview(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	o := &sccReviewOptions{}
 	cmd := &cobra.Command{
 		Use:     name,

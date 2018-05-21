@@ -50,7 +50,7 @@ type SCCModificationOptions struct {
 	Out      io.Writer
 }
 
-func NewCmdAddSCCToGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdAddSCCToGroup(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	options := &SCCModificationOptions{}
 
 	cmd := &cobra.Command{
@@ -73,7 +73,7 @@ func NewCmdAddSCCToGroup(name, fullName string, f *clientcmd.Factory, out io.Wri
 	return cmd
 }
 
-func NewCmdAddSCCToUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdAddSCCToUser(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	options := &SCCModificationOptions{}
 	saNames := []string{}
 
@@ -100,7 +100,7 @@ func NewCmdAddSCCToUser(name, fullName string, f *clientcmd.Factory, out io.Writ
 	return cmd
 }
 
-func NewCmdRemoveSCCFromGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveSCCFromGroup(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	options := &SCCModificationOptions{}
 
 	cmd := &cobra.Command{
@@ -123,7 +123,7 @@ func NewCmdRemoveSCCFromGroup(name, fullName string, f *clientcmd.Factory, out i
 	return cmd
 }
 
-func NewCmdRemoveSCCFromUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveSCCFromUser(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	options := &SCCModificationOptions{}
 	saNames := []string{}
 

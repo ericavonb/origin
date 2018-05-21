@@ -77,7 +77,7 @@ var (
 )
 
 // NewCmdReconcileClusterRoles implements the OpenShift cli reconcile-cluster-roles command
-func NewCmdReconcileClusterRoles(name, fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdReconcileClusterRoles(name, fullName string, f *clientcmd.Factory, out, errout, errOut io.Writer) *cobra.Command {
 	o := &ReconcileClusterRolesOptions{
 		Out:    out,
 		ErrOut: errout,

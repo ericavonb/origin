@@ -39,7 +39,7 @@ type RemoveFromProjectOptions struct {
 }
 
 // NewCmdRemoveGroupFromProject implements the OpenShift cli remove-group command
-func NewCmdRemoveGroupFromProject(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveGroupFromProject(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	options := &RemoveFromProjectOptions{Out: out}
 
 	cmd := &cobra.Command{
@@ -67,7 +67,7 @@ func NewCmdRemoveGroupFromProject(name, fullName string, f *clientcmd.Factory, o
 }
 
 // NewCmdRemoveUserFromProject implements the OpenShift cli remove-user command
-func NewCmdRemoveUserFromProject(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveUserFromProject(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	options := &RemoveFromProjectOptions{Out: out}
 
 	cmd := &cobra.Command{

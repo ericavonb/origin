@@ -40,7 +40,7 @@ type whoCanOptions struct {
 }
 
 // NewCmdWhoCan implements the OpenShift cli who-can command
-func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	options := &whoCanOptions{}
 
 	cmd := &cobra.Command{

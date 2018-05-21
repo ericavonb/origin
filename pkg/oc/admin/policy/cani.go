@@ -47,7 +47,7 @@ type canIOptions struct {
 	Out io.Writer
 }
 
-func NewCmdCanI(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCanI(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	o := &canIOptions{
 		Out: out,
 	}
