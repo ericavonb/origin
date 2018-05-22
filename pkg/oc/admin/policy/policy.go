@@ -87,8 +87,8 @@ func NewCmdPolicy(name, fullName string, f *clientcmd.Factory, out, errout, errO
 		{
 			Message: "Upgrade and repair system policy:",
 			Commands: []*cobra.Command{
-				NewCmdReconcileClusterRoles(ReconcileClusterRolesRecommendedName, fullName+" "+ReconcileClusterRolesRecommendedName, f, out, errout, errOut),
-				NewCmdReconcileClusterRoleBindings(ReconcileClusterRoleBindingsRecommendedName, fullName+" "+ReconcileClusterRoleBindingsRecommendedName, f, out, errout, errOut),
+				NewCmdReconcileClusterRoles(ReconcileClusterRolesRecommendedName, fullName+" "+ReconcileClusterRolesRecommendedName, f, out, errOut),
+				NewCmdReconcileClusterRoleBindings(ReconcileClusterRoleBindingsRecommendedName, fullName+" "+ReconcileClusterRoleBindingsRecommendedName, f, out, errOut),
 				NewCmdReconcileSCC(ReconcileSCCRecommendedName, fullName+" "+ReconcileSCCRecommendedName, f, out, errOut),
 			},
 		},
@@ -122,15 +122,16 @@ type RoleBindingAccessor interface {
 	UpdateRoleBinding(binding *authorizationapi.RoleBinding) error
 	CreateRoleBinding(binding *authorizationapi.RoleBinding) error
 	DeleteRoleBinding(name string) error
+	GetRole(name string) (*authorizationapi.Role, error)
 }
 
 // LocalRoleBindingAccessor operates against role bindings in namespace
 type LocalRoleBindingAccessor struct {
 	BindingNamespace string
-	Client           authorizationtypedclient.RoleBindingsGetter
+	Client           authorizationtypedclient.AuthorizationInterface
 }
 
-func NewLocalRoleBindingAccessor(bindingNamespace string, client authorizationtypedclient.RoleBindingsGetter) LocalRoleBindingAccessor {
+func NewLocalRoleBindingAccessor(bindingNamespace string, client authorizationtypedclient.AuthorizationInterface) LocalRoleBindingAccessor {
 	return LocalRoleBindingAccessor{bindingNamespace, client}
 }
 
@@ -186,12 +187,16 @@ func (a LocalRoleBindingAccessor) DeleteRoleBinding(name string) error {
 	return a.Client.RoleBindings(a.BindingNamespace).Delete(name, &metav1.DeleteOptions{})
 }
 
-// ClusterRoleBindingAccessor operates against cluster scoped role bindings
-type ClusterRoleBindingAccessor struct {
-	Client authorizationtypedclient.ClusterRoleBindingsGetter
+func (a LocalRoleBindingAccessor) GetRole(name string) (*authorizationapi.Role, error) {
+	return a.Client.Roles(a.BindingNamespace).Get(name, metav1.GetOptions{})
 }
 
-func NewClusterRoleBindingAccessor(client authorizationtypedclient.ClusterRoleBindingsGetter) ClusterRoleBindingAccessor {
+// ClusterRoleBindingAccessor operates against cluster scoped role bindings
+type ClusterRoleBindingAccessor struct {
+	Client authorizationtypedclient.AuthorizationInterface
+}
+
+func NewClusterRoleBindingAccessor(client authorizationtypedclient.AuthorizationInterface) ClusterRoleBindingAccessor {
 	// the master namespace value doesn't matter because we're round tripping all the values, so the namespace gets stripped out
 	return ClusterRoleBindingAccessor{client}
 }
@@ -257,4 +262,13 @@ func (a ClusterRoleBindingAccessor) CreateRoleBinding(binding *authorizationapi.
 
 func (a ClusterRoleBindingAccessor) DeleteRoleBinding(name string) error {
 	return a.Client.ClusterRoleBindings().Delete(name, &metav1.DeleteOptions{})
+}
+
+func (a ClusterRoleBindingAccessor) GetRole(name string) (*authorizationapi.Role, error) {
+	clusterRole, err := a.Client.ClusterRoles().Get(name, metav1.GetOptions{})
+	if err != nil || clusterRole == nil {
+		return nil, nil
+	}
+	role := authorizationapi.ToRole(clusterRole)
+	return role, nil
 }

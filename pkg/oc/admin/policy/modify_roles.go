@@ -19,6 +19,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclientinternal "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
+	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
 const (
@@ -48,6 +49,8 @@ type RoleModificationOptions struct {
 	RoleBindingName     string
 	RoleBindingAccessor RoleBindingAccessor
 
+	UserClient userclientinternal.Interface
+
 	Targets  []string
 	Users    []string
 	Groups   []string
@@ -56,8 +59,8 @@ type RoleModificationOptions struct {
 	DryRun bool
 	Output string
 
-	PrintObj func(obj runtime.Object) error
-	PrintWarning func(warn string) error
+	PrintObj  func(obj runtime.Object) error
+	PrintErrf func(format string, args ...interface{})
 }
 
 // NewCmdAddRoleToGroup implements the OpenShift cli add-role-to-group command
@@ -69,7 +72,7 @@ func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out, errO
 		Short: "Add a role to groups for the current project",
 		Long:  `Add a role to groups for the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, cmd, args, &options.Groups, "group", true, out); err != nil {
+			if err := options.Complete(f, cmd, args, &options.Groups, "group", true, out, errOut); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
@@ -103,7 +106,7 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out, errOu
 		Long:    `Add a role to users or serviceaccounts for the current project`,
 		Example: fmt.Sprintf(addRoleToUserExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.CompleteUserWithSA(f, cmd, args, saNames, true, out); err != nil {
+			if err := options.CompleteUserWithSA(f, cmd, args, saNames, true, out, errOut); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
@@ -135,7 +138,7 @@ func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out,
 		Short: "Remove a role from groups for the current project",
 		Long:  `Remove a role from groups for the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, cmd, args, &options.Groups, "group", true, out); err != nil {
+			if err := options.Complete(f, cmd, args, &options.Groups, "group", true, out, errOut); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
@@ -167,7 +170,7 @@ func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out, 
 		Short: "Remove a role from users for the current project",
 		Long:  `Remove a role from users for the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.CompleteUserWithSA(f, cmd, args, saNames, true, out); err != nil {
+			if err := options.CompleteUserWithSA(f, cmd, args, saNames, true, out, errOut); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
@@ -199,7 +202,7 @@ func NewCmdAddClusterRoleToGroup(name, fullName string, f *clientcmd.Factory, ou
 		Short: "Add a role to groups for all projects in the cluster",
 		Long:  `Add a role to groups for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, cmd, args, &options.Groups, "group", false, out); err != nil {
+			if err := options.Complete(f, cmd, args, &options.Groups, "group", false, out, errOut); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
@@ -229,7 +232,7 @@ func NewCmdAddClusterRoleToUser(name, fullName string, f *clientcmd.Factory, out
 		Short: "Add a role to users for all projects in the cluster",
 		Long:  `Add a role to users for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.CompleteUserWithSA(f, cmd, args, saNames, false, out); err != nil {
+			if err := options.CompleteUserWithSA(f, cmd, args, saNames, false, out, errOut); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
@@ -260,7 +263,7 @@ func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f *clientcmd.Factor
 		Short: "Remove a role from groups for all projects in the cluster",
 		Long:  `Remove a role from groups for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, cmd, args, &options.Groups, "group", false, out); err != nil {
+			if err := options.Complete(f, cmd, args, &options.Groups, "group", false, out, errOut); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
@@ -291,7 +294,7 @@ func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory
 		Short: "Remove a role from users for all projects in the cluster",
 		Long:  `Remove a role from users for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.CompleteUserWithSA(f, cmd, args, saNames, false, out); err != nil {
+			if err := options.CompleteUserWithSA(f, cmd, args, saNames, false, out, errOut); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageErrorf(cmd, err.Error()))
 			}
 
@@ -313,7 +316,7 @@ func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory
 	return cmd
 }
 
-func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, cmd *cobra.Command, args []string, saNames []string, isNamespaced bool, out io.Writer) error {
+func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, cmd *cobra.Command, args []string, saNames []string, isNamespaced bool, out, errOut io.Writer) error {
 	if len(args) < 1 {
 		return errors.New("you must specify a role")
 	}
@@ -350,13 +353,19 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, cmd *
 	if err != nil {
 		return err
 	}
-
+	userClient, err := userclientinternal.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+	o.UserClient = userClient
 	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 	o.PrintObj = func(obj runtime.Object) error {
 		return kcmdutil.PrintObject(cmd, obj, out)
 	}
-
+	o.PrintErrf = func(format string, args ...interface{}) {
+		fmt.Fprintf(errOut, format, args...)
+	}
 	roleBindingNamespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
@@ -376,7 +385,7 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, cmd *
 	return nil
 }
 
-func (o *RoleModificationOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, target *[]string, targetName string, isNamespaced bool, out io.Writer) error {
+func (o *RoleModificationOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, target *[]string, targetName string, isNamespaced bool, out, errOut io.Writer) error {
 	if len(args) < 2 {
 		return fmt.Errorf("you must specify at least two arguments: <role> <%s> [%s]...", targetName, targetName)
 	}
@@ -395,10 +404,20 @@ func (o *RoleModificationOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comm
 		return err
 	}
 
+	userClient, err := userclientinternal.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+
+	o.UserClient = userClient
+
 	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 	o.PrintObj = func(obj runtime.Object) error {
 		return kcmdutil.PrintObject(cmd, obj, out)
+	}
+	o.PrintErrf = func(format string, args ...interface{}) {
+		fmt.Fprintf(errOut, format, args...)
 	}
 
 	if isNamespaced {
@@ -471,6 +490,16 @@ func (o *RoleModificationOptions) AddRole() error {
 	roleBinding.RoleRef.Namespace = o.RoleNamespace
 	roleBinding.RoleRef.Name = o.RoleName
 
+	role, err := o.RoleBindingAccessor.GetRole(roleBinding.RoleRef.Name)
+	if err != nil {
+		if kapierrors.IsNotFound(err) {
+			o.PrintErrf("Warning: role '%s' not found", roleBinding.RoleRef.Name)
+		} else {
+			o.PrintErrf("Warning: role '%s' may not exist; unknown error: %v", roleBinding.RoleRef.Name, err)
+		}
+	} else if role == nil {
+		o.PrintErrf("Warning: role '%s' not found", roleBinding.RoleRef.Name)
+	}
 	newSubjects := authorizationapi.BuildSubjects(o.Users, o.Groups)
 	newSubjects = append(newSubjects, o.Subjects...)
 

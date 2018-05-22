@@ -20,10 +20,12 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 		inputSubjects               []string
 		expectedRoleBindingName     string
 		expectedSubjects            []string
+		expectedWarning             string
 		existingClusterRoleBindings *authorizationapi.ClusterRoleBindingList
+		existingClusterRoles        *authorizationapi.ClusterRoleList
 	}{
 		// no name provided - create "edit" for role "edit"
-		"create-clusterrolebinding": {
+		"create-clusterrolebindinge": {
 			action:    "add",
 			inputRole: "edit",
 			inputSubjects: []string{
@@ -33,11 +35,39 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 			expectedSubjects: []string{
 				"foo",
 			},
+			expectedWarning: "",
 			existingClusterRoleBindings: &authorizationapi.ClusterRoleBindingList{
 				Items: []authorizationapi.ClusterRoleBinding{},
 			},
+			existingClusterRoles: &authorizationapi.ClusterRoleList{
+				Items: []authorizationapi.ClusterRole{{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "edit",
+					},
+				}},
+			},
 		},
-		// name provided - create "custom" for role "edit"
+		// name provided - create "custom" for non-existent clusterrole "edit"
+		"create-named-clusterrolebinding-nonexistent-role": {
+			action:               "add",
+			inputRole:            "edit",
+			inputRoleBindingName: "custom",
+			inputSubjects: []string{
+				"foo",
+			},
+			expectedRoleBindingName: "custom",
+			expectedSubjects: []string{
+				"foo",
+			},
+			expectedWarning: "Warning: role 'edit' not found",
+			existingClusterRoleBindings: &authorizationapi.ClusterRoleBindingList{
+				Items: []authorizationapi.ClusterRoleBinding{},
+			},
+			existingClusterRoles: &authorizationapi.ClusterRoleList{
+				Items: []authorizationapi.ClusterRole{},
+			},
+		},
+		// name provided - create "custom" for existing role "edit"
 		"create-named-clusterrolebinding": {
 			action:               "add",
 			inputRole:            "edit",
@@ -49,8 +79,16 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 			expectedSubjects: []string{
 				"foo",
 			},
+			expectedWarning: "",
 			existingClusterRoleBindings: &authorizationapi.ClusterRoleBindingList{
 				Items: []authorizationapi.ClusterRoleBinding{},
+			},
+			existingClusterRoles: &authorizationapi.ClusterRoleList{
+				Items: []authorizationapi.ClusterRole{{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "edit",
+					},
+				}},
 			},
 		},
 		// name provided - modify "custom"
@@ -66,6 +104,7 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 				"bar",
 				"baz",
 			},
+			expectedWarning: "",
 			existingClusterRoleBindings: &authorizationapi.ClusterRoleBindingList{
 				Items: []authorizationapi.ClusterRoleBinding{{
 					ObjectMeta: metav1.ObjectMeta{
@@ -90,6 +129,13 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 					}},
 				},
 			},
+			existingClusterRoles: &authorizationapi.ClusterRoleList{
+				Items: []authorizationapi.ClusterRole{{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "edit",
+					},
+				}},
+			},
 		},
 		// name provided - remove from "custom"
 		"remove-named-clusterrolebinding": {
@@ -103,6 +149,7 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 			expectedSubjects: []string{
 				"bar",
 			},
+			expectedWarning: "",
 			existingClusterRoleBindings: &authorizationapi.ClusterRoleBindingList{
 				Items: []authorizationapi.ClusterRoleBinding{{
 					ObjectMeta: metav1.ObjectMeta{
@@ -127,6 +174,13 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 					}},
 				},
 			},
+			existingClusterRoles: &authorizationapi.ClusterRoleList{
+				Items: []authorizationapi.ClusterRole{{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "edit",
+					},
+				}},
+			},
 		},
 		// no name provided - creates "edit-0"
 		"update-default-clusterrolebinding": {
@@ -139,6 +193,7 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 			expectedSubjects: []string{
 				"baz",
 			},
+			expectedWarning: "",
 			existingClusterRoleBindings: &authorizationapi.ClusterRoleBindingList{
 				Items: []authorizationapi.ClusterRoleBinding{{
 					ObjectMeta: metav1.ObjectMeta{
@@ -163,6 +218,13 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 					}},
 				},
 			},
+			existingClusterRoles: &authorizationapi.ClusterRoleList{
+				Items: []authorizationapi.ClusterRole{{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "edit",
+					},
+				}},
+			},
 		},
 		// no name provided - removes "baz"
 		"remove-default-clusterrolebinding": {
@@ -175,6 +237,7 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 			expectedSubjects: []string{
 				"foo",
 			},
+			expectedWarning: "",
 			existingClusterRoleBindings: &authorizationapi.ClusterRoleBindingList{
 				Items: []authorizationapi.ClusterRoleBinding{{
 					ObjectMeta: metav1.ObjectMeta{
@@ -201,6 +264,13 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 					}},
 				},
 			},
+			existingClusterRoles: &authorizationapi.ClusterRoleList{
+				Items: []authorizationapi.ClusterRole{{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "edit",
+					},
+				}},
+			},
 		},
 	}
 	for tcName, tc := range tests {
@@ -209,10 +279,10 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 			RoleName:            tc.inputRole,
 			RoleBindingName:     tc.inputRoleBindingName,
 			Users:               tc.inputSubjects,
-			RoleBindingAccessor: NewClusterRoleBindingAccessor(fakeauthorizationclient.NewSimpleClientset(tc.existingClusterRoleBindings).Authorization()),
+			RoleBindingAccessor: NewClusterRoleBindingAccessor(fakeauthorizationclient.NewSimpleClientset(tc.existingClusterRoleBindings, tc.existingClusterRoles).Authorization()),
 		}
 
-		modifyRoleAndCheck(t, o, tcName, tc.action, tc.expectedRoleBindingName, tc.expectedSubjects)
+		modifyRoleAndCheck(t, o, tcName, tc.action, tc.expectedRoleBindingName, tc.expectedSubjects, tc.expectedWarning)
 	}
 }
 
@@ -224,7 +294,9 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 		inputSubjects           []string
 		expectedRoleBindingName string
 		expectedSubjects        []string
+		expectedWarning         string
 		existingRoleBindings    *authorizationapi.RoleBindingList
+		existingRoles           *authorizationapi.RoleList
 	}{
 		// no name provided - create "edit" for role "edit"
 		"create-rolebinding": {
@@ -237,8 +309,17 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 			expectedSubjects: []string{
 				"foo",
 			},
+			expectedWarning: "",
 			existingRoleBindings: &authorizationapi.RoleBindingList{
 				Items: []authorizationapi.RoleBinding{},
+			},
+			existingRoles: &authorizationapi.RoleList{
+				Items: []authorizationapi.Role{{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "edit",
+						Namespace: metav1.NamespaceDefault,
+					},
+				}},
 			},
 		},
 		// name provided - create "custom" for role "edit"
@@ -253,8 +334,42 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 			expectedSubjects: []string{
 				"foo",
 			},
+			expectedWarning: "",
 			existingRoleBindings: &authorizationapi.RoleBindingList{
 				Items: []authorizationapi.RoleBinding{},
+			},
+			existingRoles: &authorizationapi.RoleList{
+				Items: []authorizationapi.Role{{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "edit",
+						Namespace: metav1.NamespaceDefault,
+					},
+				}},
+			},
+		},
+		// name provided - create "custom" for non-existent role "edit" in default namespace
+		"create-named-binding-to-nonexistent-role": {
+			action:               "add",
+			inputRole:            "edit",
+			inputRoleBindingName: "custom",
+			inputSubjects: []string{
+				"foo",
+			},
+			expectedRoleBindingName: "custom",
+			expectedSubjects: []string{
+				"foo",
+			},
+			expectedWarning: "Warning: role 'edit' not found",
+			existingRoleBindings: &authorizationapi.RoleBindingList{
+				Items: []authorizationapi.RoleBinding{},
+			},
+			existingRoles: &authorizationapi.RoleList{
+				Items: []authorizationapi.Role{{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "edit", // decoy role: same name, wrong namespace
+						Namespace: "other",
+					},
+				}},
 			},
 		},
 		// no name provided - modify "edit"
@@ -268,6 +383,7 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 			expectedSubjects: []string{
 				"baz",
 			},
+			expectedWarning: "",
 			existingRoleBindings: &authorizationapi.RoleBindingList{
 				Items: []authorizationapi.RoleBinding{{
 					ObjectMeta: metav1.ObjectMeta{
@@ -296,6 +412,14 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 					}},
 				},
 			},
+			existingRoles: &authorizationapi.RoleList{
+				Items: []authorizationapi.Role{{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "edit",
+						Namespace: metav1.NamespaceDefault,
+					},
+				}},
+			},
 		},
 		// no name provided - remove "bar"
 		"remove-default-binding": {
@@ -308,6 +432,7 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 			expectedSubjects: []string{
 				"baz",
 			},
+			expectedWarning: "",
 			existingRoleBindings: &authorizationapi.RoleBindingList{
 				Items: []authorizationapi.RoleBinding{{
 					ObjectMeta: metav1.ObjectMeta{
@@ -335,6 +460,14 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 						Namespace: metav1.NamespaceDefault,
 					}},
 				},
+			},
+			existingRoles: &authorizationapi.RoleList{
+				Items: []authorizationapi.Role{{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "edit",
+						Namespace: metav1.NamespaceDefault,
+					},
+				}},
 			},
 		},
 		// name provided - modify "custom"
@@ -378,6 +511,14 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 					}},
 				},
 			},
+			existingRoles: &authorizationapi.RoleList{
+				Items: []authorizationapi.Role{{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "edit",
+						Namespace: metav1.NamespaceDefault,
+					},
+				}},
+			},
 		},
 		// name provided - modify "custom"
 		"remove-named-binding": {
@@ -391,6 +532,7 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 			expectedSubjects: []string{
 				"bar",
 			},
+			expectedWarning: "",
 			existingRoleBindings: &authorizationapi.RoleBindingList{
 				Items: []authorizationapi.RoleBinding{{
 					ObjectMeta: metav1.ObjectMeta{
@@ -419,6 +561,14 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 					}},
 				},
 			},
+			existingRoles: &authorizationapi.RoleList{
+				Items: []authorizationapi.Role{{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "edit",
+						Namespace: metav1.NamespaceDefault,
+					},
+				}},
+			},
 		},
 	}
 	for tcName, tc := range tests {
@@ -428,15 +578,20 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 			RoleBindingName:     tc.inputRoleBindingName,
 			Users:               tc.inputSubjects,
 			RoleNamespace:       metav1.NamespaceDefault,
-			RoleBindingAccessor: NewLocalRoleBindingAccessor(metav1.NamespaceDefault, fakeauthorizationclient.NewSimpleClientset(tc.existingRoleBindings).Authorization()),
+			RoleBindingAccessor: NewLocalRoleBindingAccessor(metav1.NamespaceDefault, fakeauthorizationclient.NewSimpleClientset(tc.existingRoleBindings, tc.existingRoles).Authorization()),
 		}
 
-		modifyRoleAndCheck(t, o, tcName, tc.action, tc.expectedRoleBindingName, tc.expectedSubjects)
+		modifyRoleAndCheck(t, o, tcName, tc.action, tc.expectedRoleBindingName, tc.expectedSubjects, tc.expectedWarning)
 	}
 }
 
-func modifyRoleAndCheck(t *testing.T, o *RoleModificationOptions, tcName, action string, expectedName string, expectedSubjects []string) {
+func modifyRoleAndCheck(t *testing.T, o *RoleModificationOptions, tcName, action string, expectedName string, expectedSubjects []string, expectedWarning string) {
 	var err error
+	var warning string
+	o.PrintErrf = func(format string, args ...interface{}) {
+		warning = fmt.Sprintf(format, args...)
+	}
+
 	switch action {
 	case "add":
 		err = o.AddRole()
@@ -458,4 +613,8 @@ func modifyRoleAndCheck(t *testing.T, o *RoleModificationOptions, tcName, action
 	if !reflect.DeepEqual(expectedSubjects, subjects) {
 		t.Errorf("%s: err expected users: %v, actual: %v", tcName, expectedSubjects, subjects)
 	}
+	if warning != expectedWarning {
+		t.Errorf("%s: unexpected warning: expected: '%s', actual: '%s'", tcName, expectedWarning, warning)
+	}
+
 }
